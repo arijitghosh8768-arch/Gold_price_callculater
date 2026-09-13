@@ -50,15 +50,14 @@ export default function Home() {
   const detectedKarat = hallmarkData ? `${hallmarkData.karat}K` : "Unknown";
   const detectedPurity = hallmarkData ? `${hallmarkData.purity}%` : "N/A";
 
-  // The default live rate for the selected Karat
-  const apiRateForKarat = rates?.rates?.[detectedKarat] || 0;
+  // The default live 24K rate
+  const default24kRate = rates?.rates?.["24K"] || 0;
   
-  // Use custom override if provided, else use live API rate
-  const effectiveRate = customRate ? parseFloat(customRate) : apiRateForKarat;
+  // Use custom 24K override if provided, else use live 24K rate
+  const userRate24k = customRate ? parseFloat(customRate) : default24kRate;
 
-  // The backend API expects a base 24K rate to do its own math (rate * fineness/999).
-  // To allow the backend to output our specific effectiveRate, we reverse-engineer the 24K rate.
-  const rate24kForBackend = parsedFineness > 0 ? effectiveRate * (999.0 / parsedFineness) : 0;
+  // The effective rate (just for display in the detection card, the backend does the exact same math)
+  const effectiveRate = userRate24k * (parsedFineness / 999.0);
 
   const handleCalculate = async () => {
     try {
@@ -68,7 +67,7 @@ export default function Home() {
         body: JSON.stringify({
           fineness: parsedFineness,
           weight: parseFloat(weight) || 0,
-          gold_rate_24k: rate24kForBackend,
+          gold_rate_24k: userRate24k,
           making_charges: parseFloat(makingCharges) || 0,
           making_charges_type: makingType,
           wastage: parseFloat(wastage) || 0,
@@ -232,13 +231,13 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="premium-input rounded-xl p-3 flex flex-col">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex justify-between">
-                      <span>{detectedKarat} Rate (₹/g)</span>
+                      <span>24K Retail Rate (₹/g)</span>
                     </label>
                     <input 
                       type="number" 
                       value={customRate} 
                       onChange={e => setCustomRate(e.target.value)} 
-                      placeholder={apiRateForKarat ? `${apiRateForKarat}` : "Live Rate"} 
+                      placeholder={default24kRate ? `${default24kRate}` : "Live 24K Rate"} 
                       className="bg-transparent outline-none font-mono text-lg text-white placeholder-gray-600" 
                     />
                   </div>
@@ -356,14 +355,14 @@ export default function Home() {
                 
                 <div className="space-y-3 font-mono text-sm">
                   <div className="flex justify-between text-gray-400"><span>Net Weight</span><span className="text-gray-300">{weight}g</span></div>
-                  <div className="flex justify-between text-gray-400"><span>Gold Value</span><span className="text-gray-300">₹{result.gold_value.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-gray-400"><span>Est. Gold Metal Value</span><span className="text-gray-300">₹{result.gold_value.toLocaleString()}</span></div>
                   {result.wastage_value > 0 && <div className="flex justify-between text-gray-400"><span>Wastage</span><span className="text-gray-300">₹{result.wastage_value.toLocaleString()}</span></div>}
                   {result.making_charges_value > 0 && <div className="flex justify-between text-gray-400"><span>Making Chg.</span><span className="text-gray-300">₹{result.making_charges_value.toLocaleString()}</span></div>}
                   <div className="flex justify-between text-gray-400"><span>GST (3%)</span><span className="text-gray-300">₹{result.gst_value.toLocaleString()}</span></div>
                 </div>
                 
                 <div className="border-t border-white/10 pt-4 mt-4 flex justify-between items-center">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Estimated Total</span>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Estimated Final Price</span>
                   <span className="font-mono text-2xl text-gold-gradient font-bold">₹{result.estimated_total.toLocaleString()}</span>
                 </div>
               </div>
